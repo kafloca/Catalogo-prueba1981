@@ -117,7 +117,7 @@
 <body>
 
 <header>
-    <h1>KAFLOCA STORE</h1>
+    <h1 id="storeTitle">KAFLOCA STORE</h1>
     <div class="subtitle">Catálogo Digital</div>
 </header>
 
@@ -691,15 +691,48 @@
     ];
 
     let cart = [];
+const ADMIN_PASSWORD = "dollie2026";
 
+let inventory =
+    JSON.parse(localStorage.getItem("inventory")) || {};
+
+let totalSales =
+    Number(localStorage.getItem("totalSales")) || 0;
+
+function initializeInventory(){
+
+    products.forEach(product => {
+
+        if(inventory[product.id] === undefined){
+
+            inventory[product.id] = product.stock || 0;
+
+        }
+
+    });
+
+    localStorage.setItem(
+        "inventory",
+        JSON.stringify(inventory)
+    );
+}
+    
     // Cargar productos
     function loadProducts(category = 'all') {
         const grid = document.getElementById('grid');
         grid.innerHTML = '';
         
-        const filtered = category === 'all' 
-            ? products 
-            : products.filter(p => p.c === category);
+const filtered = products.filter(product => {
+
+    const stock = inventory[product.id] || 0;
+
+    const categoryOk =
+        category === "all" ||
+        product.c === category;
+
+    return stock > 0 && categoryOk;
+
+});
 
         filtered.forEach(p => {
             const card = document.createElement('div');
@@ -738,7 +771,31 @@
     }
 
     function filterProducts(cat) { loadProducts(cat); }
+function openAdminPanel(){
 
+    const pwd = prompt(
+        "Ingrese la contraseña:"
+    );
+
+    if(pwd !== ADMIN_PASSWORD){
+
+        alert("Contraseña incorrecta");
+        return;
+
+    }
+function closeAdminPanel(){
+
+    document.getElementById(
+        "adminModal"
+    ).style.display = "none";
+
+}
+    document.getElementById(
+        "adminModal"
+    ).style.display = "block";
+
+    renderInventoryPanel();
+}
     function addToCart(id) {
         const product = products.find(p => p.id === id);
         cart.push(product);
@@ -782,7 +839,104 @@
             `).join('');
         }
     }
+function renderInventoryPanel(){
 
+    let html = `
+    <table border="1"
+           width="100%"
+           cellspacing="0">
+
+      <tr>
+        <th>Código</th>
+        <th>Producto</th>
+        <th>Precio</th>
+        <th>Existencia</th>
+        <th>Acciones</th>
+      </tr>`;
+
+    products.forEach(product=>{
+
+        html += `
+        <tr>
+
+          <td>${product.id}</td>
+
+          <td>${product.n}</td>
+
+          <td>₡${product.p}</td>
+
+          <td>${inventory[product.id]}</td>
+
+          <td>
+
+            <button onclick="adjustInventory('${product.id}',1)">
+               +
+            </button>
+
+            <button onclick="adjustInventory('${product.id}',-1)">
+               -
+            </button>
+
+            <button onclick="registerSale('${product.id}')">
+               Venta
+            </button>
+
+          </td>
+
+        </tr>`;
+    });
+
+    html += `
+    </table>
+
+    <h3>
+       Total Vendido:
+       ₡${totalSales.toLocaleString()}
+    </h3>
+    `;
+
+    document.getElementById(
+        "inventoryTable"
+    ).innerHTML = html;
+}
+    function adjustInventory(id, qty){
+
+    inventory[id] =
+        (inventory[id] || 0) + qty;
+
+    if(inventory[id] < 0){
+
+        inventory[id] = 0;
+
+    }
+
+    localStorage.setItem(
+        "inventory",
+        JSON.stringify(inventory)
+    );
+
+    renderInventoryPanel();
+
+    loadProducts();
+}
+    function registerSale(id){
+
+    const product =
+       products.find(
+       p => p.id === id
+    );
+
+    if(!product) return;
+
+    totalSales += product.p;
+
+    localStorage.setItem(
+      "totalSales",
+      totalSales
+    );
+
+    renderInventoryPanel();
+}
     function toggleCart() {
         const modal = document.getElementById('cart-modal');
         modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
@@ -817,11 +971,94 @@
     }
 
     // Inicializar
-    document.addEventListener('DOMContentLoaded', () => {
-        loadProducts();
-        updateCartDisplay();
-    });
-</script>
+    let pressTimer;
+    function initializeAdminAccess(){
 
+    const title =
+        document.getElementById("storeTitle");
+
+    if(!title) return;
+
+    title.addEventListener(
+        "touchstart",
+        () => {
+
+            pressTimer =
+            setTimeout(() => {
+
+                openAdminPanel();
+
+            }, 3000);
+
+        }
+    );
+
+    title.addEventListener(
+        "touchend",
+        () => {
+
+            clearTimeout(
+                pressTimer
+            );
+
+        }
+    );
+
+    title.addEventListener(
+        "touchcancel",
+        () => {
+
+            clearTimeout(
+                pressTimer
+            );
+
+        }
+    );
+
+}
+document.addEventListener('DOMContentLoaded', () => {
+
+    initializeInventory();
+
+    initializeAdminAccess();
+
+    loadProducts();
+
+    updateCartDisplay();
+
+});
+</script>
+<div id="adminModal"
+    style="display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,.7);
+    z-index:9999;">
+
+    <div style="
+        background:white;
+        width:90%;
+        max-width:900px;
+        margin:30px auto;
+        padding:20px;
+        max-height:90vh;
+        overflow:auto;">
+
+        <h2>Administración Inventario</h2>
+
+        <div id="inventoryTable"></div>
+
+        <br>
+
+        <button onclick="closeAdminPanel()">
+            Cerrar
+        </button>
+
+    </div>
+
+</div>
 </body>
 </html>
