@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo KAFLOCA STORE</title>
+    <style>
+        :root {
+            --primary: #D4AF37; /* Dorado elegante */
+            --dark: #1a1a1a;
+            --light: #f9f9f9;
+            --success: #25D366; /* Verde WhatsApp */
+        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--light); margin: 0; padding-bottom: 80px; color: var(--dark); }
+        
+        /* Header */
+        header { background: white; padding: 20px 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+        h1 { margin: 0; font-size: 1.8rem; letter-spacing: 2px; text-transform: uppercase; }
+        .subtitle { color: var(--primary); font-weight: 600; margin-top: 5px; font-size: 0.9rem; }
+        
+        /* Navegación de Categorías */
+        .nav-scroller { display: flex; overflow-x: auto; gap: 10px; padding: 15px; background: white; border-bottom: 1px solid #eee; -webkit-overflow-scrolling: touch; }
+        .cat-btn {
+            border: 1px solid #ddd; background: white; padding: 8px 18px; border-radius: 20px; 
+            cursor: pointer; white-space: nowrap; font-size: 0.9rem; transition: all 0.3s ease;
+        }
+        .cat-btn.active { background: var(--primary); color: white; border-color: var(--primary); transform: scale(1.05); }
+
+        /* Contenedor Principal */
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+        
+        /* Grilla de Productos */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); /* Tarjetas adaptables */
+            gap: 15px;
+        }
+        @media(min-width: 768px) { .product-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; } }
+
+        /* Tarjeta de Producto */
+        .card {
+            background: white; border-radius: 12px; overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05); transition: transform 0.2s;
+            display: flex; flex-direction: column; height: 100%;
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        .card-img-wrapper {
+            position: relative; width: 100%; padding-top: 100%; /* Aspect ratio 1:1 */
+            background: #f0f0f0; overflow: hidden;
+        }
+        .card-img {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; transition: opacity 0.3s;
+        }
+        
+        /* Placeholder por si falta imagen */
+        .no-img-placeholder {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: #aaa; background: #eee;
+        }
+
+        .card-info { padding: 12px; display: flex; flex-direction: column; flex-grow: 1; }
+        .card-code { font-size: 0.75rem; color: #888; font-weight: bold; margin-bottom: 4px; }
+        .card-title { font-size: 1rem; margin: 0 0 5px; line-height: 1.3; color: var(--dark); }
+        .card-desc { font-size: 0.8rem; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 10px; }
+        
+        .card-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; }
+        .price { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+        .add-btn {
+            background: var(--dark); color: white; border: none; width: 35px; height: 35px;
+            border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex;
+            align-items: center; justify-content: center; transition: background 0.2s;
+        }
+        .add-btn:hover { background: var(--primary); }
+
+        /* Botón Flotante Carrito */
+        .fab-cart {
+            position: fixed; bottom: 25px; right: 25px; background: var(--primary); color: white;
+            padding: 15px 25px; border-radius: 50px; box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
+            cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 10px;
+            z-index: 1000; animation: popIn 0.3s;
+        }
+        @keyframes popIn { from {transform: scale(0);} to {transform: scale(1);} }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 2000; align-items: flex-end; justify-content: center;
+        }
+        @media(min-width: 768px) { .modal-overlay { align-items: center; } }
+
+        .modal-content {
+            background: white; width: 100%; max-width: 500px; padding: 25px;
+            border-radius: 20px 20px 0 0; max-height: 85vh; overflow-y: auto;
+            position: relative; animation: slideUp 0.3s;
+        }
+        @media(min-width: 768px) { .modal-content { border-radius: 15px; } }
+        @keyframes slideUp { from {transform: translateY(100%);} to {transform: translateY(0);} }
+
+        .cart-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .cart-item-info strong { display: block; font-size: 0.95rem; }
+        .cart-item-info small { color: #888; }
+        .remove-link { color: #ff4d4d; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-family: inherit; }
+        
+        .btn-block { width: 100%; padding: 14px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        .btn-whatsapp { background: var(--success); color: white; }
+        .btn-email { background: #333; color: white; }
+        
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: #999; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>KAFLOCA STORE</h1>
+    <div class="subtitle">Catálogo Digital</div>
+</header>
+
+<div class="nav-scroller">
+    <button class="cat-btn active" onclick="filterProducts('all')">Todos</button>
+    <button class="cat-btn" onclick="filterProducts('Accesorios')">Accesorios</button>
+    <button class="cat-btn" onclick="filterProducts('Anillos')">Anillos</button>
+    <button class="cat-btn" onclick="filterProducts('Aretes')">Aretes</button>
+    <button class="cat-btn" onclick="filterProducts('Collares')">Collares</button>
+    <button class="cat-btn" onclick="filterProducts('Pulseras')">Pulseras</button>
+    <button class="cat-btn" onclick="filterProducts('Tobilleras')">Tobilleras</button>
+    <button class="cat-btn" onclick="filterProducts('Sets')">Conjuntos</button>
+</div>
+
+<div class="container">
+    <div class="product-grid" id="grid">
+        </div>
+</div>
+
+<div class="fab-cart" onclick="toggleCart()">
+    <span>🛒</span>
+    <span id="cart-total-badge">₡0</span>
+</div>
+
+<div class="modal-overlay" id="cart-modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="toggleCart()">&times;</span>
+        <h2 style="margin-top: 0">Tu Pedido</h2>
+        
+        <div id="cart-list">
+            <p style="text-align: center; color: #999;">El carrito está vacío.</p>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0; font-size: 1.2rem; font-weight: bold;">
+            <span>Total:</span>
+            <span style="color: var(--primary);">₡<span id="cart-final-total">0</span></span>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 20px;">
+
+        <div class="form-group">
+            <input type="text" id="client-name" class="form-control" placeholder="Tu Nombre Completo">
+        </div>
+        <div class="form-group">
+            <input type="tel" id="client-phone" class="form-control" placeholder="Teléfono / WhatsApp">
+        </div>
+        <div class="form-group">
+            <textarea id="client-address" class="form-control" placeholder="Notas Adicionales" rows="2"></textarea>
+        </div>
+
+        <button class="btn-block btn-whatsapp" onclick="checkout('whatsapp')">Enviar Pedido por WhatsApp</button>
+    </div>
+</div>
+
+<script>
+    /* =====================================================
+       CONFIGURACIÓN DE LA TIENDA
+       ===================================================== */
+    const STORE_WHATSAPP = "50684107482"; // Número sin símbolos
+    const STORE_EMAIL = "floryta_81@hotmail.com"; // Tu correo real
+    
+    // BASE DE DATOS COMPLETA DE PRODUCTOS
+    // Nota: Se han corregido precios erróneos (ej: 43500 -> 3500)
+    const products = [
+        // ACCESORIOS
+        {id:"AC-01", n:"Broche Girasol", p:3000, c:"Accesorios", d:"Joyería de perlas."},
+        {id:"AC-02", n:"Liga para cabello", p:1200, c:"Accesorios", d:"Plateada, 5 unidades."},
+        {id:"AC-03", n:"Liga para cabello", p:1200, c:"Accesorios", d:"Dorada, 5 unidades."},
+        {id:"AC-04", n:"Pañuelo de satín", p:2500, c:"Accesorios", d:"Impresión print animal."},
+        {id:"AC-05", n:"Pañuelo de satín", p:2000, c:"Accesorios", d:"Color solido (negro)."},
+        {id:"AC-06", n:"Colgante de cangrejo", p:1200, c:"Accesorios", d:"Aleación y esmaltado."},
+        {id:"AC-07", n:"Colgante de langosta", p:1200, c:"Accesorios", d:"Aleación y esmaltado."},
+        {id:"AC-08", n:"Pin de gacilla para ajustar", p:1000, c:"Accesorios", d:"Color negro."},
+        {id:"AC-09", n:"Pin de gacilla para ajustar", p:1000, c:"Accesorios", d:"Color blanco."},
+        {id:"AC-10", n:"Broche Gorrion", p:3000, c:"Accesorios", d:"Joyería de perlas."},
+        {id:"AC-11", n:"Banda elástica para el cabello", p:1000, c:"Accesorios", d:"Flor blanca."},
+        {id:"AC-12", n:"Banda elástica para el cabello", p:1000, c:"Accesorios", d:"Flor café."},
+        {id:"AC-13", n:"Banda elástica para el cabello", p:1000, c:"Accesorios", d:"Flor roja."},
+        {id:"AC-14", n:"Broche rosa", p:2000, c:"Accesorios", d:"Rosa blanca."},
+        {id:"AC-15", n:"Prensas de Flor Lila", p:2000, c:"Accesorios", d:"Estilo vintage, flor metal."},
+        {id:"AC-16", n:"Cinturon de pañuelo", p:2000, c:"Accesorios", d:"Encaje campestre (blanco)."},
+        {id:"AC-17", n:"Funda para Gafas", p:2000, c:"Accesorios", d:"Cuero sintético, unisex."},
+        {id:"AC-18", n:"Broche Flores", p:3000, c:"Accesorios", d:"Joyería de perlas."},
+        {id:"AC-19", n:"Cinturon de pañuelo", p:2000, c:"Accesorios", d:"Triangular encaje campestre (negro)"},
+        {id:"AC-20", n:"Broche mariposa", p:2000, c:"Accesorios", d:"Broche mariposa"},
+        {id:"AC-21", n:"Cinturon de cadena", p:2500, c:"Accesorios", d:"Retro con diseño Floral"},
+        {id:"AC-22", n:"Colgante estrella de mar", p:1200, c:"Accesorios", d:"Acero inoxidable 304, plateada"},
+        {id:"AC-23", n:"Colgante estrella de mar", p:1500, c:"Accesorios", d:"Acero inoxidable 304, dorada"},
+        {id:"AC-24", n:"Cadena de extensión", p:800, c:"Accesorios", d:"Acero inoxidable 304, pequeña"},
+        {id:"AC-25", n:"Cadena de extensión", p:1000, c:"Accesorios", d:"Acero inoxidable 304, mediana"},
+        {id:"AC-26", n:"Cadena de extensión", p:1200, c:"Accesorios", d:"Acero inoxidable 304, grande"},
+        {id:"AC-27", n:"Cadena de extensión", p:800, c:"Accesorios", d:"Acero inoxidable 304, pequeña"},
+        {id:"AC-28", n:"Cadena de extensión", p:1000, c:"Accesorios", d:"Acero inoxidable 304, mediana"},
+        {id:"AC-29", n:"Cadena de extensión", p:1200, c:"Accesorios", d:"Acero inoxidable 304, grande"},
+        {id:"AC-30", n:"Pañuelo de Satín", p:2000, c:"Accesorios", d:"Impresión Multicolor"},
+        {id:"AC-31", n:"Pañuelo de Satín", p:2000, c:"Accesorios", d:"Color solido (beige)"},
+        {id:"AC-32", n:"Pañuelo de Satín", p:2000, c:"Accesorios", d:"Color solido (verde)"},
+        {id:"AC-33", n:"Pañuelo de Satín", p:2000, c:"Accesorios", d:"Color solido (blanco)"},
+        {id:"AC-34", n:"Pañuelo de Satín", p:2000, c:"Accesorios", d:"Color solido (cafe)"},
+        {id:"AC-35", n:"Broche perla", p:1000, c:"Accesorios", d:"8 unidades"},
+        {id:"AC-36", n:"Pañuelo de Satín", p:2000, c:"Accesorios", d:"Color solido (rojo)"},
+        {id:"AC-37", n:"Pañuelo de Satín", p:2500, c:"Accesorios", d:"Impresión print floral"},
+        {id:"AC-38", n:"Pañuelo de Satín", p:2500, c:"Accesorios", d:"Impresión print animal"},
+        {id:"AC-39", n:"Pañuelo para el cabello", p:2000, c:"Accesorios", d:"Tejido, negro"},
+        {id:"AC-40", n:"Pañuelo para el cabello", p:2000, c:"Accesorios", d:"Tejido, blanco"},
+        {id:"AC-41", n:"Pañuelo de Satín", p:2500, c:"Accesorios", d:"Impresión print animal"},
+        {id:"AC-42", n:"Pañuelo para el cabello", p:2000, c:"Accesorios", d:"Tejido, celeste"},
+        {id:"AC-43", n:"Banda para el cabello", p:1000, c:"Accesorios", d:"Elastica con aplique dorado"},
+        {id:"AC-44", n:"Banda para el cabello", p:1000, c:"Accesorios", d:"Elastica con aplique dorado"},
+        {id:"AC-45", n:"Pañuelo para el cabello", p:2000, c:"Accesorios", d:"Tejido, multicolor"},
+        {id:"AC-46", n:"Pañuelo para el cabello", p:2000, c:"Accesorios", d:"Tejido, fresas"},
+        {id:"AC-47", n:"Prensas de flor", p:2000, c:"Accesorios", d:"Perlas blancas"},
+        {id:"AC-48", n:"Broche flor", p:2000, c:"Accesorios", d:"Con perla"},
+        {id:"AC-49", n:"Broche Girasol", p:2000, c:"Accesorios", d:"Girasol A"},
+        {id:"AC-50", n:"Broche Girasol", p:2000, c:"Accesorios", d:"Girasol B"},
+        {id:"AC-51", n:"Broche Floral", p:2000, c:"Accesorios", d:"Lirio"},
+        {id:"AC-52", n:"Cinturon de cadena", p:2500, c:"Accesorios", d:"Retro A"},
+        {id:"AC-53", n:"Cinturon de cadena", p:2500, c:"Accesorios", d:"Retro B"},
+        {id:"AC-54", n:"Cinturon de cadena", p:2500, c:"Accesorios", d:"Retro C"},
+        {id:"AC-55", n:"Cinturon de cadena", p:2500, c:"Accesorios", d:"Retro D"},
+        {id:"AC-56", n:"Cinturon de cadena", p:2500, c:"Accesorios", d:"Retro E"},
+        {id:"AC-57", n:"Cinturon de cadena", p:2500, c:"Accesorios", d:"Retro F"},
+        {id:"AC-58", n:"Broche Floral", p:2000, c:"Accesorios", d:"Con perlas"},
+        {id:"AC-59", n:"Prensas de Flor", p:2000, c:"Accesorios", d:"Flor blancas"},
+        {id:"AC-61", n:"Prensas de Flor", p:2000, c:"Accesorios", d:"Prensas de Flor rosadas"},
+        {id:"AC-62", n:"Broche de abeja", p:2000, c:"Accesorios", d:"Dorado y negro"},
+        {id:"AC-63", n:"Pañuelo de Satín", p:2500, c:"Accesorios", d:"Impresión print Floral"},
+        {id:"AC-64", n:"Gafas de sol mujer.", p:2500, c:"Accesorios", d:"Estilo ojo de gato."},
+        {id:"AC-65", n:"Gafas de sol mujer.", p:2500, c:"Accesorios", d:"Estilo ojo de gato."},
+        {id:"AC-66", n:"Gafas de sol mujer.", p:2500, c:"Accesorios", d:"Estilo ojo de gato."},
+        {id:"AC-67", n:"Pin de corazon", p:2500, c:"Accesorios", d:"Acero Inoxidable 304"},
+        {id:"AC-68", n:"Pin de lazo", p:2500, c:"Accesorios", d:"Acero Inoxidable 304"},
+        {id:"AC-69", n:"Pin de rama", p:2500, c:"Accesorios", d:"Acero Inoxidable 304"},
+        {id:"AC-70", n:"Pin de flor", p:2500, c:"Accesorios", d:"Acero Inoxidable 304"},
+        {id:"AC-71", n:"Broche para ajuste.", p:1000, c:"Accesorios", d:"Con perlas."},
+
+        // ANILLOS
+        {id:"AN-01", n:"Anillo Geo Verde", p:3500, c:"Anillos", d:"Acero 304, chapado oro 18k, resistente al agua."},
+        {id:"AN-02", n:"Anillo Espiral", p:3500, c:"Anillos", d:"Acero 304, abierto."},
+        {id:"AN-03", n:"Anillo Geo Beige", p:3500, c:"Anillos", d:"Acero 304, chapado oro 18k, geométrico estilo IG."},
+        {id:"AN-04", n:"Anillo Geo Burdeos", p:3500, c:"Anillos", d:"Acero 304, chapado oro 18k, color burdeos."},
+        {id:"AN-05", n:"Anillo abierto estrella de mar.", p:1500, c:"Anillos", d:"Acero inoxidable 304."},
+        {id:"AN-06", n:"Anillo abierto con perla blanca", p:3000, c:"Anillos", d:"Con Perla blanca, acero inoxidable 304"},
+        {id:"AN-07", n:"Anillo Corazon", p:2000, c:"Anillos", d:"Acero 304, abierto."},
+        {id:"AN-08", n:"Anillo abierto con perla blanca en acero inoxidable 304 dorado.", p:3500, c:"Anillos", d:"Anillo abierto con perla blanca en acero inoxidable 304 dorado."},
+        {id:"AN-09", n:"Anillo abierto geometrico ", p:2000, c:"Anillos", d:"Acero inoxdable 304"},
+        {id:"AN-10", n:"Anillo abierto flores y perla", p:2200, c:"Anillos", d:"Acero inoxidable 304 dorado"},
+        {id:"AN-11", n:"Anillo abierto flores y perla", p:2000, c:"Anillos", d:"Acero inoxidable 304 plateado"},
+        {id:"AN-12", n:"Anillo Espiral Leopardo", p:3500, c:"Anillos", d:"Ajustable, diseño geométrico."},
+        {id:"AN-13", n:"Anillo abierto hoja", p:3500, c:"Anillos", d:"Acero inoxidable 304,cuenta de vidrio imitación jade"},
+        {id:"AN-14", n:"Anillo Flor Dorada", p:2500, c:"Anillos", d:"Acero 304, dorado, abierto."},
+        {id:"AN-15", n:"Anillo abierto piedra natural ", p:3500, c:"Anillos", d:"Acero Inoxidable 316.(azul)"},
+        {id:"AN-16", n:"Anillo Resina Dorado", p:3000, c:"Anillos", d:"Centro resina, chapado oro 18k electrochapado."},
+        {id:"AN-17", n:"Anillo Corazón Ajustable", p:2500, c:"Anillos", d:"Corazón abierto ajustable, acero 304."},
+        {id:"AN-18", n:"Anillo Puntos Rojos", p:2500, c:"Anillos", d:"Anillo abierto con puntos rojos, acero 304."},
+        {id:"AN-19", n:"Anillo Franja Blanca Delgada", p:2000, c:"Anillos", d:"Acero 304 PVD, chapado oro 18k."},
+        {id:"AN-20", n:"Anillo abierto ajustable de piedra natural", p:3500, c:"Anillos", d:"Acero Inoxidable 316.(naranja)"},
+        {id:"AN-21", n:"Anillo abierto ajustable de piedra natural", p:3500, c:"Anillos", d:"Acero Inoxidable 316.(verde)"},
+        {id:"AN-22", n:"Anillo Cuentas de Color", p:3000, c:"Anillos", d:"Acero 304, abierto, ajustable."},
+        {id:"AN-23", n:"Anillo Snake", p:2000, c:"Anillos", d:"Acero 304."},  
+        {id:"AN-24", n:"Anillo Franja Roja", p:2500, c:"Anillos", d:"Acero 304 PVD, chapado oro auténtico 18k."},
+        {id:"AN-25", n:"Anillo Ojo Gato", p:2500, c:"Anillos", d:"Anillo abierto ojo de gato, acero 304."},
+        {id:"AN-26", n:"Anillo abierto piedra natural", p:3500, c:"Anillos", d:"Acero Inoxidable 316.(blanco)"},
+        {id:"AN-27", n:"Anillo Gotas Peq", p:2200, c:"Anillos", d:"Anillo abierto gotas pequeñas, acero 304."},
+        {id:"AN-28", n:"Anillo Franja Marmoleada", p:2500, c:"Anillos", d:"Acero 304 PVD, chapado oro auténtico 18k."},
+        {id:"AN-29", n:"Anillo Franja Azul", p:2500, c:"Anillos", d:"Acero 304 PVD, chapado oro auténtico 18k."},
+        {id:"AN-30", n:"Anillo abierto estrella de mar", p:1500, c:"Anillos", d:"Acero inoxidable 304."},
+        {id:"AN-31", n:"Anillo abierto con perla", p:2500, c:"Anillos", d:"Acero inoxidable 304."},
+        {id:"AN-32", n:"Anillo Snake", p:2000, c:"Anillos", d:"Acero 304."},
+        {id:"AN-33", n:"Anillo Piedras Blancas", p:3000, c:"Anillos", d:"Acero 304, piedras blancas."},
+        {id:"AN-34", n:"Anillo Piedras Ambar", p:3000, c:"Anillos", d:"Acero 304, piedras ambar."},
+        {id:"AN-35", n:"Anillo abierto asimétrico", p:2500, c:"Anillos", d:"Acero inoxidable 316"},
+        {id:"AN-36", n:"Anillo abierto corazones", p:2500, c:"Anillos", d:"Acero inoxidable 316"},
+        {id:"AN-37", n:"Anillo Bolas Bicolor", p:3000, c:"Anillos", d:"Acero 316L."},
+        {id:"AN-38", n:"Anillo Bolas Dorado", p:3000, c:"Anillos", d:"Acero 316L."},
+        {id:"AN-39", n:"Anillo Corazones Dorados", p:2000, c:"Anillos", d:"Acero 304."},
+        {id:"AN-40", n:"Anillo Corazones Plateados", p:2000, c:"Anillos", d:"Acero 304."},
+        {id:"AN-41", n:"Anillo Flores Abierto", p:2500, c:"Anillos", d:"Acero 304."},
+        {id:"AN-42", n:"Anillo Flores", p:2500, c:"Anillos", d:"Acero 304."},
+        {id:"AN-43", n:"Anillo abierto imitación jade", p:3500, c:"Anillos", d:"Acero inoxidable 304, chapado en oro 18k y cuentas de vidrio"},
+        {id:"AN-44", n:"Anillo Barras Cruzadas", p:2500, c:"Anillos", d:"Acero 304, Dorado."},
+        {id:"AN-45", n:"Anillo Cuentas Verde", p:3000, c:"Anillos", d:"Acero 304, Ajustable."},
+        {id:"AN-46", n:"Anillo boca", p:2000, c:"Anillos", d:"Acero inoxidable 304, plateado"},
+        {id:"AN-47", n:"Anillo Flor Petalo M", p:3000, c:"Anillos", d:"Acero 304."},
+        {id:"AN-48", n:"Anillo Flor Petalo G", p:3000, c:"Anillos", d:"Acero 304."},
+        {id:"AN-49", n:"Anillos acrilicos", p:2500, c:"Anillos", d:"Conjunto"},
+        {id:"AN-50", n:"Anillo boca", p:2000, c:"Anillos", d:"Acero inoxidable 304, dorado"},
+        {id:"AN-51", n:"Anillo acrilico", p:2000, c:"Anillos", d:"Color negro"},
+        {id:"AN-52", n:"Anillo acrilico", p:2000, c:"Anillos", d:"Color café"},
+        {id:"AN-53", n:"Anillo abierto geometrico", p:2000, c:"Anillos", d:"Ajustable de acero inoxdable 304"},
+        {id:"AN-54", n:"Anillo acrilico", p:1500, c:"Anillos", d:"Retro colores, pequeño"},
+        {id:"AN-55", n:"Anillo acrilico", p:2000, c:"Anillos", d:"Retro colores, mediano"},
+        {id:"AN-56", n:"Anillo acrilico", p:2500, c:"Anillos", d:"Retro colores, grande"},
+        {id:"AN-57", n:"Anillo abierto geometrico", p:2000, c:"Anillos", d:"Ajustable de acero inoxdable 304"},
+        {id:"AN-58", n:"Anillo flores", p:2500, c:"Anillos", d:"Acero inoxidable 304, dorado"},
+        {id:"AN-59", n:"Anillo flores", p:2000, c:"Anillos", d:"Acero inoxidable 304, plateado"},
+        {id:"AN-60", n:"Anillo abierto", p:1500, c:"Anillos", d:"Color celeste de resina"},
+        {id:"AN-61", n:"Anillo abierto", p:2000, c:"Anillos", d:"Color azul de resina"},
+        {id:"AN-62", n:"Anillo cuentas", p:3000, c:"Anillos", d:"Cuentas rojo"},
+        {id:"AN-65", n:"Anillo cuentas", p:3000, c:"Anillos", d:"Cuentas multicolor tierra"},
+        {id:"AN-66", n:"Anillo acrílico", p:2000, c:"Anillos", d:"Colores varios"},
+        {id:"AN-67", n:"Anillo resina", p:2000, c:"Anillos", d:"Retro color Beige"},
+        {id:"AN-68", n:"Anillo resina", p:2000, c:"Anillos", d:"Retro color Caramelo"},
+        {id:"AN-69", n:"Anillo resina", p:2000, c:"Anillos", d:"Retro color Negro"},
+        {id:"AN-70", n:"Anillo acrílico", p:2000, c:"Anillos", d:"Corazon grande"},
+
+        // ARETES
+        {id:"AR-01", n:"Soporte anticaída", p:500, c:"Aretes", d:"Silicona."},
+        {id:"AR-02", n:"Aretes media bolita", p:2000, c:"Aretes", d:"Acero inoxidable 304, dorada"},
+        {id:"AR-03", n:"Aretes Gota Blanco", p:3000, c:"Aretes", d:"Minimalista vintage, geométricos, chapado oro."},
+        {id:"AR-04", n:"Aretes Gota Café", p:3000, c:"Aretes", d:"Minimalista vintage, geométricos, chapado oro."},
+        {id:"AR-05", n:"Aretes Rosario", p:2500, c:"Aretes", d:"Acero 304, chapado oro 18k. Grandes."},
+        {id:"AR-08", n:"Aretes Flor Perla", p:2300, c:"Aretes", d:"Flor de cuatro pétalos con perla. Grandes."},
+        {id:"AR-09", n:"Aretes Lazo Perla Peq", p:2000, c:"Aretes", d:"Forma de lazo con perla. Pequeños."},
+        {id:"AR-10", n:"Aretes Palmera Perla", p:2300, c:"Aretes", d:"Forma de palmera con perla. Grandes."},
+        {id:"AR-11", n:"Aretes Asimétricos Resina", p:2500, c:"Aretes", d:"Acero inoxidable y resina, estilo dorado."},
+        {id:"AR-12", n:"Aretes Gota Resina", p:2500, c:"Aretes", d:"Acero inoxidable y resina, estilo dorado."},
+        {id:"AR-13", n:"Aretes Ovalo Resina", p:2500, c:"Aretes", d:"Acero inoxidable y resina, estilo dorado."},
+        {id:"AR-14", n:"Aretes Pulpo Perla", p:2300, c:"Aretes", d:"Forma de pulpo con perlas ovaladas. Grandes."},
+        {id:"AR-15", n:"Aretes Óvalo Perla", p:2300, c:"Aretes", d:"Forma de óvalo con perlas ovaladas. Grandes."},
+        {id:"AR-16", n:"Aretes Platillo Perla", p:2300, c:"Aretes", d:"Forma de platillo con perlas ovaladas. Grandes."},
+        {id:"AR-17", n:"Aretes Lazo Perla Gde", p:2300, c:"Aretes", d:"Forma de lazo con perla. Grandes."},
+        {id:"AR-18", n:"Aretes Gota Dorada", p:2000, c:"Aretes", d:"Acero 304 PVD chapado oro auténtico."},
+        {id:"AR-19", n:"Aretes Lazo Plateado", p:2000, c:"Aretes", d:"Acero 304."},
+        {id:"AR-20", n:"Aretes Aro Dorado", p:2500, c:"Aretes", d:"Acero 304 IP, chapado oro 18k. Grandes."},
+        {id:"AR-21", n:"Aretes Lazo Colgante", p:2000, c:"Aretes", d:"Acero 304 PVD oro auténtico con perla."},
+        {id:"AR-22", n:"Aretes Púa", p:2300, c:"Aretes", d:"Diseño de púa, acero inoxidable 304."},
+        {id:"AR-23", n:"Aretes C Flor Blanca", p:2000, c:"Aretes", d:"Acero 304, recubrimiento IP oro 18k."},
+        {id:"AR-24", n:"Aretes media bolita ", p:2000, c:"Aretes", d:"Acero inoxidable 304, plateada"},
+        {id:"AR-25", n:"Aretes Flor Plateada", p:2000, c:"Aretes", d:"Acero 304."},
+        {id:"AR-26", n:"Aretes Flor Negra", p:2000, c:"Aretes", d:"Acero 304, recubrimiento IP oro 18k."},
+        {id:"AR-27", n:"Aretes Peach", p:2000, c:"Aretes", d:"Diseño peach, acero inoxidable 304."},
+        {id:"AR-28", n:"Aretes Nido Perla", p:2300, c:"Aretes", d:"Forma de nido con perla. Grandes."},
+        {id:"AR-29", n:"Aretes Redondos Perla", p:2300, c:"Aretes", d:"Forma redonda con perla. Grandes."},
+        {id:"AR-30", n:"Aretes Abanico Perla", p:2000, c:"Aretes", d:"Forma de abanico con perla. Pequeños."},
+        {id:"AR-31", n:"Aretes Mármol Blanco", p:2500, c:"Aretes", d:"Resina chapada oro 18k, incrustado mármol."},
+        {id:"AR-32", n:"Aretes Forma C", p:2500, c:"Aretes", d:"Resina, gris."},
+        {id:"AR-33", n:"Aretes Espiral Perla", p:2000, c:"Aretes", d:"Forma de espiral con perla. Pequeños."},
+        {id:"AR-34", n:"Aretes Mármol Verde", p:2500, c:"Aretes", d:"Resina chapada oro 18k, incrustado mármol."},
+        {id:"AR-35", n:"Aretes Forma C", p:2500, c:"Aretes", d:"Resina, vino."},
+        {id:"AR-36", n:"Aretes Tulipán Rojo", p:1500, c:"Aretes", d:"Enchapado acero titanio, oro 18k."},
+        {id:"AR-37", n:"Aretes Tulipán Rosado", p:1500, c:"Aretes", d:"Enchapado acero titanio, oro 18k."},
+        {id:"AR-38", n:"Aretes Ostra Grande", p:2300, c:"Aretes", d:"Forma de ostra con perla. Grandes."},
+        {id:"AR-39", n:"Aretes Fresa", p:2000, c:"Aretes", d:"Diseño de fresa, acero inoxidable 304."},
+        {id:"AR-41", n:"Aretes Forma C", p:2500, c:"Aretes", d:"Resina, beige."},
+        {id:"AR-40", n:"Aretes rosario ", p:2000, c:"Aretes", d:"Acero inoxidable 304, plateada"},
+        {id:"AR-42", n:"Aretes Flor 5 Pétalos", p:2000, c:"Aretes", d:"Flor de cinco pétalos con perla. Pequeños."},
+        {id:"AR-43", n:"Aretes Mármol Celeste", p:2500, c:"Aretes", d:"Resina chapada oro 18k, incrustado mármol."},
+        {id:"AR-44", n:"Aretes Margarita", p:1500, c:"Aretes", d:"Acero 304 PVD chapado oro auténtico."},
+        {id:"AR-45", n:"Aretes Corazón Ondulado", p:2200, c:"Aretes", d:"Acero inoxidable 304."},
+        {id:"AR-46", n:"Aretes Rosario Peq", p:2000, c:"Aretes", d:"Acero 304 IP chapados oro 18k. Pequeños."},
+        {id:"AR-47", n:"Aretes Corazón Grande", p:2500, c:"Aretes", d:"Corazón ondulado acero 304. Grandes."},
+        {id:"AR-48", n:"Aretes Bolita Chunky", p:4000, c:"Aretes", d:"Bolita chunky de acero inoxidable 304."},
+        {id:"AR-49", n:"Aretes Media Flor", p:2000, c:"Aretes", d:"Acero 304, plateado."},
+        {id:"AR-50", n:"Aretes Ovalo Hueco", p:2500, c:"Aretes", d:"Acero 316, chapado oro 18k, textura cuadrada."},
+        {id:"AR-51", n:"Aretes Irregular Hueco", p:2200, c:"Aretes", d:"Acero 316, chapado oro 18k, textura cuadrada."},
+        {id:"AR-52", n:"Aretes Hoja", p:2000, c:"Aretes", d:"Diseño de hoja, acero inoxidable 304."},
+        {id:"AR-53", n:"Aretes Bloom", p:2500, c:"Aretes", d:"Diseño bloom, acero inoxidable 304."},
+        {id:"AR-54", n:"Aretes redondos", p:1500, c:"Aretes", d:"Acrílico, color solido (rojo)"},
+        {id:"AR-55", n:"Aretes Maxi Café", p:3500, c:"Aretes", d:"Maximalistas acero 304 IP oro 18k. Café."},
+        {id:"AR-56", n:"Aretes redondos", p:1500, c:"Aretes", d:"Acrílico, color solido (naranja)"},
+        {id:"AR-57", n:"Aretes Roca", p:2200, c:"Aretes", d:"Diseño roca, acero inoxidable 304."},
+        {id:"AR-58", n:"Aretes Argolla Corazón", p:2500, c:"Aretes", d:"Acero 304."},
+        {id:"AR-59", n:"Aretes C Love", p:2200, c:"Aretes", d:"Diseño C Love, acero inoxidable 304."},
+        {id:"AR-60", n:"Aretes redondos", p:1500, c:"Aretes", d:"Acrílico, color solido (amarillo)"},
+        {id:"AR-61", n:"Aretes Gota Dorada", p:2000, c:"Aretes", d:"Forma de gota, pintura oro 18k."},
+        {id:"AR-62", n:"Aretes redondos", p:1500, c:"Aretes", d:"Acrílico,color solido (blanco)"},
+        {id:"AR-63", n:"Aretes Flor Blanca", p:2000, c:"Aretes", d:"Florcita blanca, acero 304 IP oro 18k."},
+        {id:"AR-64", n:"Aretes Media Flor BD", p:2500, c:"Aretes", d:"Acero 316L."},
+        {id:"AR-65", n:"Aretes Corazón Bañado", p:1500, c:"Aretes", d:"Acero 304, chapado larga duración."},
+        {id:"AR-66", n:"Aretes estilo frances", p:2500, c:"Aretes", d:"Acero inoxidable 304 con perla"},
+        {id:"AR-67", n:"Aretes Flor Martillada", p:2000, c:"Aretes", d:"Acero 304."},
+        {id:"AR-68", n:"Aretes Cerámica I", p:2500, c:"Aretes", d:"Acero 304."},
+        {id:"AR-69", n:"Aretes redondos", p:1500, c:"Aretes", d:"Acrílico,color solido (verde)"},
+        {id:"AR-70", n:"Aretes Cerámica B", p:2500, c:"Aretes", d:"Acero 304."},
+        {id:"AR-71", n:"Aretes redondos", p:1500, c:"Aretes", d:"Acrílico,color solido (rosa)"},
+        {id:"AR-72", n:"Soporte Anticaída", p:500, c:"Aretes", d:"Plateado."},
+        {id:"AR-73", n:"Aretes Flor 5 Petalos", p:2000, c:"Aretes", d:"Acero 304."},
+        {id:"AR-74", n:"Aretes Flor Negra", p:2000, c:"Aretes", d:"Cuatro petalos."},
+        {id:"AR-75", n:"Aretes Colgante Corazón", p:2500, c:"Aretes", d:"Acero 304."},
+        {id:"AR-76", n:"Argollas estilo clásico", p:2200, c:"Aretes", d:"Acero inoxidable 304, plateado"},
+        {id:"AR-77", n:"Aretes Corazon Perlado", p:2000, c:"Aretes", d:"Titanio, chapado oro 18k."},
+        {id:"AR-78", n:"Aretes Corazones RBA", p:2500, c:"Aretes", d:"Acero 316L."},
+        {id:"AR-79", n:"Aretes Media Flor ND", p:2500, c:"Aretes", d:"Acero 316L."},
+        {id:"AR-80", n:"Argollas estilo clásico", p:2500, c:"Aretes", d:"Acero inoxidable 304, dorado"},
+        {id:"AR-81", n:"Aretes Corazón Abierto", p:2000, c:"Aretes", d:"Acero 304."},
+        {id:"AR-82", n:"Soporte Anticaída", p:500, c:"Aretes", d:"Dorado."},
+        {id:"AR-83", n:"Argollas doradas", p:1500, c:"Aretes", d:"Acero Inoxidable 304, chapado de oro, pequeña"},
+        {id:"AR-84", n:"Argollas doradas", p:2000, c:"Aretes", d:"Acero Inoxidable 304, chapado de oro, mediana"},
+        {id:"AR-85", n:"Argollas doradas", p:2500, c:"Aretes", d:"Acero Inoxidable 304, chapado de oro, grande"},
+        {id:"AR-86", n:"Argollas plateadas", p:1500, c:"Aretes", d:"Acero Inoxidable 304, pequeña"},
+        {id:"AR-87", n:"Argollas plateadas", p:2000, c:"Aretes", d:"Acero Inoxidable 304, mediana"},
+        {id:"AR-88", n:"Argollas plateadas", p:2500, c:"Aretes", d:"Acero Inoxidable 304, grande"},
+        {id:"AR-89", n:"Pendientes Gota", p:2500, c:"Aretes", d:"Acero inoxidable 304, cerámica"},
+        {id:"AR-90", n:"Aretes bolita", p:1500, c:"Aretes", d:"Acero inoxidable 304."},
+        {id:"AR-91", n:"Aretes perla", p:2000, c:"Aretes", d:"Acero inoxidable 304."},
+        {id:"AR-92", n:"Aretes perla", p:1800, c:"Aretes", d:"Acero inoxidable 304."},
+        {id:"AR-93", n:"Aretes perlitas", p:1800, c:"Aretes", d:"Acero inoxidable 304."},
+        {id:"AR-94", n:"Aretes bolita", p:1800, c:"Aretes", d:"Acero inoxidable 304."},
+        {id:"AR-95", n:"Aretes flores", p:1500, c:"Aretes", d:"Acero inoxidable 304, colores rosa, beige y lila"},
+        {id:"AR-96", n:"Aretes en C", p:2500, c:"Aretes", d:"Acero Inoxidable 304"},
+        {id:"AR-97", n:"Aretes perlas", p:2500, c:"Aretes", d:"Acero inoxidable 304 con perlas de imitacion."},
+        {id:"AR-98", n:"Aretes perlas", p:2000, c:"Aretes", d:"Acero inoxidable 304, perlas forma de corazón"},
+        {id:"AR-99", n:"Aretes bolitas", p:2500, c:"Aretes", d:"Acero inoxidable 304, bolitas en C"},
+        {id:"AR-100", n:"Aretes bolitas", p:2500, c:"Aretes", d:"Acero inoxidable 304, bolitas en C"},
+        {id:"AR-101", n:"Aretes gota", p:1500, c:"Aretes", d:"Acero inoxidable 304, forma de Corazón"},
+        {id:"AR-102", n:"Aretes geométrico", p:2200, c:"Aretes", d:"Acero Inoxidable 316"},
+        {id:"AR-103", n:"Aretes huggies corazón", p:2500, c:"Aretes", d:"Acero inoxidable 304"},
+        {id:"AR-104", n:"Aretes geométrico", p:2500, c:"Aretes", d:"Acero Inoxidable 316 con diseño geométrico"},
+        {id:"AR-105", n:"Aretes huggies corazón", p:2700, c:"Aretes", d:"Acero inoxidable 304"},
+        {id:"AR-106", n:"Aretes fresa", p:2000, c:"Aretes", d:"Acero inoxidable 304"},
+        {id:"AR-107", n:"Aretes estrella de mar", p:2000, c:"Aretes", d:"Acero inoxidable, dorado"},
+        {id:"AR-108", n:"Aretes estrella de mar", p:1800, c:"Aretes", d:"Acero inoxidable, plateado"},
+        {id:"AR-109", n:"Aretes gota perla", p:1800, c:"Aretes", d:"Acero inoxidable 304, perla corazón"},
+        {id:"AR-110", n:"Aretes lirio", p:2000, c:"Aretes", d:"Lirio blanco"},
+        {id:"AR-111", n:"Aretes lirio", p:2000, c:"Aretes", d:"Lirio negro"},
+        {id:"AR-112", n:"Aretes de perla", p:1500, c:"Aretes", d:"Acero inoxidable 304"},
+        {id:"AR-113", n:"Aretes cierre seguridad", p:1500, c:"Aretes", d:"Acero inoxidable 304, dorada"},
+        {id:"AR-114", n:"Argollas cierre seguridad", p:2000, c:"Aretes", d:"Acero inoxidable 304, dorada"},
+        {id:"AR-115", n:"Aretes cierre seguridad", p:1500, c:"Aretes", d:"Acero inoxidable 304, plateado"},
+        {id:"AR-116", n:"Argollas cierre seguridad", p:2000, c:"Aretes", d:"Acero inoxidable 304, plateado"},
+        {id:"AR-117", n:"Argollas corazones", p:2500, c:"Aretes", d:"Acero inoxidable 304, corazones de colores"},
+
+        // EAR CUFFS
+        {id:"EA-01", n:"Ear Cuff Lazo", p:1500, c:"Aretes", d:"Enchapado acero inoxidable 304."},
+        {id:"EA-02", n:"Ear cuff bolitas", p:1500, c:"Aretes", d:"Acero inoxidable 304"},
+        {id:"EA-03", n:"Ear cuff flores", p:1500, c:"Aretes", d:"Acero inoxidable 304"},
+        {id:"EA-04", n:"Ear cuff tiras", p:1500, c:"Aretes", d:"Acero inoxidable 304, bolitas"},
+        {id:"EA-05", n:"Ear Cuff Cadena", p:1500, c:"Aretes", d:"Enchapado acero inoxidable 304."},
+        {id:"EA-06", n:"Ear Cuff Chunky I", p:2000, c:"Aretes", d:"PVD chapado oro 18k. Chunky."},
+        {id:"EA-07", n:"Ear Cuff Chunky II", p:2000, c:"Aretes", d:"PVD chapado oro 18k. Chunky."},
+        {id:"EA-08", n:"Ear cuff bandas", p:1500, c:"Aretes", d:"Acero inoxidable 304"},
+        {id:"EA-09", n:"Ear cuff bandas", p:1500, c:"Aretes", d:"Acero inoxidable 304"},
+        {id:"EA-10", n:"Ear cuff chuncky olas", p:2000, c:"Aretes", d:"Acero inoxidable 304"},
+        {id:"EA-11", n:"Ear Cuff Piedras A", p:2000, c:"Aretes", d:"Piedras ambar."},
+        {id:"EA-12", n:"Ear Cuff Piedras VBR", p:2000, c:"Aretes", d:"Piedras Verde, blanco, rojas, por separado."},
+        {id:"EA-13", n:"Ear cuff corazon", p:2500, c:"Aretes", d:"Acero Inoxidable 304 con chapado en oro 18K"},
+        {id:"EA-14", n:"Ear cuff solido", p:2000, c:"Aretes", d:"Acero inoxidable 304, plateado"},
+        {id:"EA-15", n:"Ear cuff bandas", p:2500, c:"Aretes", d:"Acero Inoxidable 304 con chapado en Oro 18K"},
+
+        // COLLARES
+        {id:"CA-01", n:"Collar 3 Capas Dorado", p:3000, c:"Collares", d:"3 capas, acero 304 PVD oro 18k."},
+        {id:"CA-02", n:"Collar corazón Dorado", p:3500, c:"Collares", d:"Acero 316L."},
+        {id:"CA-03", n:"Collar de bolitas", p:1700, c:"Collares", d:"Acero chapado en oro 18k"},
+        {id:"CA-04", n:"Collar cerámica Flor", p:3000, c:"Collares", d:"Acero 304."},
+        {id:"CA-05", n:"Collar bufanda de seda", p:3500, c:"Collares", d:"Dije de flor ajustable de acero inoxidable 304"},
+        {id:"CA-06", n:"Collar maxi cuentas redondas", p:3000, c:"Collares", d:"Acero inoxidable 304 y acero de titanio"},
+        {id:"CA-07", n:"Collar tres capas", p:3000, c:"Collares", d:"Con perlas de imitación"},
+        {id:"CA-08", n:"Collar Tulipán Rojo", p:2000, c:"Collares", d:"Dije tulipán, acero 304 PVD oro 18k."},
+        {id:"CA-09", n:"Collar cuerda", p:4000, c:"Collares", d:"Dije corazón maxi"},
+        {id:"CA-10", n:"Cadena dorada.", p:2000, c:"Collares", d:"Acero inoxidable 304, 60cm."},
+        {id:"CA-11", n:"Collar cuentas", p:3500, c:"Collares", d:"Con colgante estrella de mar, acero inoxidable 304"},
+        {id:"CA-12", n:"Cadena Rombos Doble", p:3000, c:"Collares", d:"Acero 316 electrochapado oro 18k."},
+        {id:"CA-13", n:"Cadena Corazón", p:3500, c:"Collares", d:"Colgante corazón, acero 316 oro 18k."},
+        {id:"CA-14", n:"Collar Cerámica Pentágono", p:3000, c:"Collares", d:"Acero 304."},
+        {id:"CA-15", n:"Collar Doble Gotas-Liso", p:3000, c:"Collares", d:"Collar doble acero 304 PVD oro 18k."},
+        {id:"CA-16", n:"Collar Doble Gotas", p:3200, c:"Collares", d:"Collar doble acero 304 PVD oro 18k."},
+        {id:"CA-17", n:"Collar Perla Dorado", p:3000, c:"Collares", d:"Acero 304 chapado oro con perla."},
+        {id:"CA-19", n:"Collar Cuentas Corazón", p:3000, c:"Collares", d:"Acero 304."},
+        {id:"CA-20", n:"Collar corazon cerámica", p:3000, c:"Collares", d:"Acero inoxidable 304"},
+        {id:"CA-21", n:"Collar Cuentas Cuadro", p:3000, c:"Collares", d:"Acero 304."},
+        {id:"CA-22", n:"Collar Cerámica Redondo", p:3000, c:"Collares", d:"Acero 304."},
+        {id:"CA-23", n:"Collar Aro y Bola", p:3500, c:"Collares", d:"Titanio, largo."},
+        {id:"CA-24", n:"Collar Cuentas Irregulares C", p:3500, c:"Collares", d:"Acrílico, café."},
+        {id:"CA-25", n:"Collar Nudo Perla", p:3500, c:"Collares", d:"Acero 304, diamantes artificiales."},
+        {id:"CA-26", n:"Cadena patrón continuo", p:1500, c:"Collares", d:"Acero inoxidable 304, 45cm"},
+        {id:"CA-27", n:"Collar en Y Plateado", p:3500, c:"Collares", d:"Acero 304, diamantes artificiales."},
+        {id:"CA-28", n:"Collar Cuentas Plástico V", p:3500, c:"Collares", d:"Hecho a mano, verde."},
+        {id:"CA-29", n:"Collar Dije Lazo", p:3500, c:"Collares", d:"Acero 304, largo."},
+        {id:"CA-30", n:"Collar Cuentas Plástico N", p:3500, c:"Collares", d:"Hecho a mano, naranja."},
+        {id:"CA-31", n:"Cadena patrón continuo", p:2000, c:"Collares", d:"Acero inoxidabler 304, 55cm"},
+        {id:"CA-32", n:"Collar Cuentas Plástico A", p:3500, c:"Collares", d:"Hecho a mano, amarillo."},
+        {id:"CA-33", n:"Cadena patrón continuo", p:2200, c:"Collares", d:"Acero inoxidabler 304, 60cm"},
+        {id:"CA-34", n:"Collar Largo Dije Lazo", p:3500, c:"Collares", d:"Acero 304."},
+        {id:"CA-35", n:"Collar Cuerda y Dije P", p:2500, c:"Collares", d:"Acero 304, plateado."},
+        {id:"CA-36", n:"Collar Cuerda y Dije D", p:3000, c:"Collares", d:"Acero 304, dorado."},
+        {id:"CA-37", n:"Cadena cuerda torcida", p:4000, c:"Collares", d:"Extra largo multiuso en acero inoxidable 304"},
+        {id:"CA-38", n:"Collar Arcilla Blanca", p:3000, c:"Collares", d:"Acero 304, cierre langosta."},
+        {id:"CA-39", n:"Collar Arcilla Negra", p:3000, c:"Collares", d:"Acero 304, cierre langosta."},
+        {id:"CA-40", n:"Collar Largo Dije Corazón", p:3500, c:"Collares", d:"Acero 304."},
+        {id:"CA-41", n:"Collar Corazón Plateado", p:3000, c:"Collares", d:"Acero 316L."},
+        {id:"CA-42", n:"Collar Arcilla Roja", p:3000, c:"Collares", d:"Acero 304, cierre langosta."},
+        {id:"CA-43", n:"Collar bufanda seda", p:3500, c:"Collares", d:"Dije de corazon ajustable de acero inoxidable 304"},
+        {id:"CA-44", n:"Collar Hilo Torcido D", p:3000, c:"Collares", d:"Titanio, largo."},
+        {id:"CA-45", n:"Collar Cuerda y Dije Corazón", p:4500, c:"Collares", d:"Acero 304, dorado."},
+        {id:"CA-46", n:"Collar Cuentas Dije C", p:2500, c:"Collares", d:"Acero 304, plateado."},
+        {id:"CA-47", n:"Cadena torcida", p:4200, c:"Collares", d:"Extra largo multiuso en acero inoxidable 304"},
+        {id:"CA-48", n:"Collar Cuentas Acrílico B", p:2500, c:"Collares", d:"Beige, dije corazón."},
+        {id:"CA-49", n:"Collar Cuentas Acrílico A", p:2500, c:"Collares", d:"Azul, dije corazón."},
+        {id:"CA-50", n:"Collar Cuentas Acrílico R", p:2500, c:"Collares", d:"Rosado, dije corazón."},
+        {id:"CA-51", n:"Collar Clip Corazón", p:4000, c:"Collares", d:"Acero 304."},
+        {id:"CA-52", n:"Collar Clip Ovalo", p:4000, c:"Collares", d:"Acero 304."},  
+        {id:"CA-53", n:"Collar Clip Corazón G", p:4000, c:"Collares", d:"Acero 304."},
+        {id:"CA-54", n:"Collar Doble Capa C", p:4000, c:"Collares", d:"Acero 316L."},
+        {id:"CA-55", n:"Collar Hilo Torcido P", p:3000, c:"Collares", d:"Titanio, largo."},
+        {id:"CA-56", n:"Collar Doble Estrellas", p:3500, c:"Collares", d:"Acero 304."},
+        {id:"CA-57", n:"Collar Cuentas Medianas", p:2500, c:"Collares", d:"Acero 304."},
+        {id:"CA-58", n:"Collar Cuentas Grandes", p:3000, c:"Collares", d:"Acero 304."},
+        {id:"CA-59", n:"Collar perlas de vidrio", p:3000, c:"Collares", d:"Largo para uso en capas"},
+        {id:"CA-60", n:"Collar cuentas", p:2000, c:"Collares", d:"Cuentas celeste"},
+        {id:"CA-61", n:"Collar Cuentas Acrílico Nr", p:3000, c:"Collares", d:"Naranja."},
+        {id:"CA-62", n:"Collar Cuentas Acrílico Bl", p:3000, c:"Collares", d:"Blanco."},
+        {id:"CA-63", n:"Collar Cuentas Acrílico Am", p:3000, c:"Collares", d:"Ambar."},
+        {id:"CA-64", n:"Collar Cuentas Acrílico Cf", p:3000, c:"Collares", d:"Café."},
+        {id:"CA-65", n:"Collar cuentas", p:2000, c:"Collares", d:"Cuentas rojo"},
+        {id:"CA-66", n:"Collar cuentas", p:2000, c:"Collares", d:"Cuentas blanco"},
+        {id:"CA-67", n:"Collar cuentas", p:2000, c:"Collares", d:"Cuentas rosa"},
+        {id:"CA-68", n:"Collar cuentas", p:2000, c:"Collares", d:"Cuentas amarillo"},
+        {id:"CA-69", n:"Collar bufanda seda", p:4000, c:"Collares", d:"Dijes de cerámica y acero inoxidable 304, dorada"},
+        {id:"CA-70", n:"Collar Margaritas Negras", p:2500, c:"Collares", d:"Acero 304."},
+        {id:"CA-71", n:"Collar Corazones Vino", p:3000, c:"Collares", d:"Resina."},
+        {id:"CA-72", n:"Collar perlas", p:2500, c:"Collares", d:"Perlas negras para uso en capas"},
+        {id:"CA-73", n:"Collar perlas blancas", p:2500, c:"Collares", d:"Perlas blancas para uso en capas"},
+        {id:"CA-74", n:"Collar Corazones Café", p:3000, c:"Collares", d:"Resina."},
+        {id:"CA-75", n:"Collar Corazones Ambar", p:3000, c:"Collares", d:"Resina."},
+        {id:"CA-76", n:"Collar Cuerda Dije Grande", p:3500, c:"Collares", d:"Acero 304, dorado."},
+        {id:"CA-77", n:"Cadena 3 capas", p:2200, c:"Collares", d:"Plateada de acero inoxidable 304."},
+        {id:"CA-78", n:"Cadena bolitas", p:2500, c:"Collares", d:"Dije de bola maxi, acero inoxidable 304"},
+        {id:"CA-79", n:"Cadena mixta", p:2200, c:"Collares", d:"Bolitas y perlas de imitacion de acero inoxidable 304"},
+        {id:"CA-80", n:"Collar cuentas", p:3500, c:"Collares", d:"Cuentas multicolor en acero inoxidable 304."},
+        {id:"CA-81", n:"Collar cuentas", p:3500, c:"Collares", d:"Cuentas multicolor en acero inoxidable 304."},
+        {id:"CA-82", n:"Collar cuentas", p:3500, c:"Collares", d:"Cuentas multicolor en acero inoxidable 304."},
+        {id:"CA-83", n:"Collar cuentas", p:3500, c:"Collares", d:"Cuentas multicolor en acero inoxidable 304."},
+        {id:"CA-84", n:"Collar bufanda seda", p:3500, c:"Collares", d:"Dije de concha ajustable de acero inoxidable 304"},
+        {id:"CA-85", n:"Collar vintage", p:4000, c:"Collares", d:"Acero inoxidable 304, cuentas de porcelana y dije de corazon."},
+        {id:"CA-86", n:"Cadena cuentas", p:3000, c:"Collares", d:"Cuentas de cristal artificial rojo"},
+        {id:"CA-87", n:"Cadena cuentas", p:3000, c:"Collares", d:"Cuentas de cristal artificial negro"},
+        {id:"CA-88", n:"Collar cuentas", p:4000, c:"Collares", d:"Cuentas dije corazón, acero inoxidable 304, chapado en oro. (naranja)"},
+        {id:"CA-89", n:"Collar cuentas", p:4000, c:"Collares", d:"Cuentas dije corazón, acero inoxidable 304, chapado en oro. (amarillo)"},
+        {id:"CA-90", n:"Collar cuentas", p:4000, c:"Collares", d:"Cuentas dije corazón, acero inoxidable 304, chapado en oro. (celeste)"},
+        {id:"CA-91", n:"Collar cuentas", p:4000, c:"Collares", d:"Cuentas dije corazón, acero inoxidable 304, chapado en oro. (verde)"},
+        {id:"CA-92", n:"Collar cuentas", p:3500, c:"Collares", d:"Cuentas con colgante, concha marina, acero inoxidable 304"},
+        {id:"CA-93", n:"Collar encaje", p:4200, c:"Collares", d:"Con colgantes de acero inoxidable negro"},
+        {id:"CA-94", n:"Collar encaje", p:4500, c:"Collares", d:"Con colgantes de acero inoxidable blanco"},
+        {id:"CA-95", n:"Collar francabules", p:3500, c:"Collares", d:"Con dije de corazón de acero inoxidable"},
+        {id:"CA-97", n:"Collar cuentas", p:3500, c:"Collares", d:"Plastico R"},
+        {id:"CA-99", n:"Collar cuentas ", p:4000, c:"Collares", d:"Cuentas rosa multicolor, dije de flor, acero inoxidable 304"},
+        {id:"CA-100", n:"Collar bufanda seda", p:4500, c:"Collares", d:"Con colgante gran flor blanca, acero inoxidable 304."},
+        {id:"CA-101", n:"Collar bufanda seda", p:4500, c:"Collares", d:"Con colgante gran flor negra, acero inoxidable 304."},
+
+        // PULSERAS
+        {id:"BR-01", n:"Brazalete Ancho Corrugado", p:2500, c:"Pulseras", d:"Acero 304 PVD chapado oro auténtico."},
+        {id:"BR-02", n:"Brazalete Ancho Irregular", p:2500, c:"Pulseras", d:"Acero 304 PVD chapado oro auténtico."},
+        {id:"BR-03", n:"Brazalete Delgado Arena", p:2000, c:"Pulseras", d:"Acero 304 PVD chapado oro auténtico."},
+        {id:"BR-04", n:"Brazalete Retro Ambar", p:2500, c:"Pulseras", d:"Acrílico."},
+        {id:"BR-05", n:"Brazalete con perla", p:3500, c:"Pulseras", d:"Acero inoxidable 304."},
+        {id:"BR-06", n:"Brazalete Retro Verde", p:4000, c:"Pulseras", d:"Acrílico, 4 piezas."},
+        {id:"BR-07", n:"Brazaletes acrilicos", p:3500, c:"Pulseras", d:"Acrilicos morados"},
+        {id:"BR-08", n:"Brazaletes acrilicos", p:3500, c:"Pulseras", d:"Acrilicos tierra"},
+        {id:"BR-09", n:"Brazaletes acrilicos", p:3500, c:"Pulseras", d:"Acrilicos verdes"},
+        {id:"BR-10", n:"Brazalete Hoja Dorado", p:2500, c:"Pulseras", d:"Acero 304."},
+        {id:"BR-11", n:"Brazalete Flor Negra", p:3000, c:"Pulseras", d:"Acero 304."},
+        {id:"BR-12", n:"Brazaletes acrilicos", p:3500, c:"Pulseras", d:"Acrilicos blancas"},
+        {id:"BR-13", n:"Brazalete Vintage Verde", p:1500, c:"Pulseras", d:"Acrílico."},
+        {id:"BR-14", n:"Brazaletes acrilicos", p:3500, c:"Pulseras", d:"Acrilicos brillos"},
+        {id:"BR-15", n:"Brazalete Vintage Rosa I", p:2000, c:"Pulseras", d:"Acrílico."},
+        {id:"BR-16", n:"Brazalete Vintage Rosa D", p:1500, c:"Pulseras", d:"Acrílico."},
+        {id:"BR-17", n:"Brazalete Vintage Rosa C", p:2000, c:"Pulseras", d:"Acrílico."},
+        {id:"BR-18", n:"Brazaletes acrilicos", p:3500, c:"Pulseras", d:"Acrilicos naranjas"},
+        {id:"BR-19", n:"Brazalete Geo Miel", p:3500, c:"Pulseras", d:"Acrílico, 4 piezas."},
+        {id:"BR-20", n:"Brazalete Geo Azul", p:3500, c:"Pulseras", d:"Acrílico, 4 piezas."},
+        {id:"BR-21", n:"Brazaletes acrilicos", p:3500, c:"Pulseras", d:"Acrilicos negras"},
+        {id:"PU-01", n:"Pulsera Snake Triple Bol", p:2500, c:"Pulseras", d:"Resistente al agua y deslustre."},
+        {id:"PU-02", n:"Pulsera Triple Bolas Grand", p:2500, c:"Pulseras", d:"Resistente al agua y deslustre."},
+        {id:"PU-03", n:"Pulsera Corvina Delgada", p:2500, c:"Pulseras", d:"Resistente al agua y deslustre."},
+        {id:"PU-04", n:"Pulsera Corvina Gruesa", p:2500, c:"Pulseras", d:"Resistente al agua y deslustre."},
+        {id:"PU-05", n:"Pulsera Eslabones Grandes", p:2500, c:"Pulseras", d:"Resistente al agua y deslustre."},
+        {id:"PU-06", n:"Pulsera Cuerda", p:2000, c:"Pulseras", d:"Acero inoxidable 304."},
+        {id:"PU-07", n:"Pulsera Sencilla Bolas", p:2000, c:"Pulseras", d:"Acero inoxidable 304."},
+        {id:"PU-08", n:"Pulsera Eslabones Peq", p:2500, c:"Pulseras", d:"Acero inoxidable 304."},
+        {id:"PU-09", n:"Pulsera Rectángulos", p:2000, c:"Pulseras", d:"Acero inoxidable 304."},
+        {id:"PU-10", n:"Pulsera Hip Hop", p:2000, c:"Pulseras", d:"Plateada en acero inoxidable 304"},
+        {id:"PU-11", n:"Pulsera Cubana", p:2500, c:"Pulseras", d:"Recubrimiento IP, resistente al agua."},
+        {id:"PU-12", n:"Pulsera Snake", p:2500, c:"Pulseras", d:"Recubrimiento IP, resistente al agua."},
+        {id:"PU-13", n:"Pulsera Hip Hop", p:2300, c:"Pulseras", d:"Dorada en acero inoxidable 304"},
+        {id:"PU-14", n:"Pulsera Bizantina", p:3000, c:"Pulseras", d:"Recubrimiento IP, resistente al agua."},
+        {id:"PU-15", n:"Pulsera Triple Bolitas Dor", p:3000, c:"Pulseras", d:"Acero 304 PVD chapado oro 18k."},
+        {id:"PU-16", n:"Pulsera Triple Bolitas Plat", p:2500, c:"Pulseras", d:"Acero 304 PVD."},
+        {id:"PU-17", n:"Pulsera Cuerda Ajustable B", p:2500, c:"Pulseras", d:"Beige, cobre, enchapado oro 18k."},
+        {id:"PU-18", n:"Pulsera Corazón Perlas", p:3500, c:"Pulseras", d:"Acero 304."},
+        {id:"PU-19", n:"Pulsera Punk", p:2500, c:"Pulseras", d:"Acero inoxidable 304."},
+        {id:"PU-20", n:"Pulsera Cleo", p:2000, c:"Pulseras", d:"Acero inoxidable 304."},
+        {id:"PU-21", n:"Pulsera Namarok", p:2500, c:"Pulseras", d:"Acero inoxidable 304."},
+        {id:"PU-22", n:"Pulsera Popcorn", p:2000, c:"Pulseras", d:"Acero inoxidable 304."},
+        {id:"PU-23", n:"Pulsera cuentas", p:2500, c:"Pulseras", d:"Acero inoxidable 304 con chapado en oro 18k"},
+        {id:"PU-24", n:"Pulsera cuentas", p:2500, c:"Pulseras", d:"Acero inoxidable 304 con chapado en oro 18k"},
+        {id:"PU-25", n:"Pulsera Eslabones Dorada", p:2500, c:"Pulseras", d:"Acero 304."},
+        {id:"PU-26", n:"Pulsera Cuerda Ajustable C", p:2500, c:"Pulseras", d:"Café, cobre, enchapado oro 18k."},
+        {id:"PU-27", n:"Pulsera Cuerda Ajustable N", p:2500, c:"Pulseras", d:"Negra, cobre, enchapado oro 18k."},
+        {id:"PU-28", n:"Pulsera Dos Corazones", p:3000, c:"Pulseras", d:"Acero 304."},
+        {id:"PU-29", n:"Pulsera con tela", p:3500, c:"Pulseras", d:"Patrón leopardo en acero inoxidable 304."},
+        {id:"PU-30", n:"Pulsera de Tela Animal Corazón", p:3000, c:"Pulseras", d:"Con dijes."},
+        {id:"PU-31", n:"Pulsera Entrelazada Plateada", p:2500, c:"Pulseras", d:"Acero 304."},
+        {id:"PU-32", n:"Pulsera Elástico Mármol I", p:3000, c:"Pulseras", d:"Nudo bicolor, piedras irregulares."},
+        {id:"PU-33", n:"Pulsera Elástico Mármol L", p:2500, c:"Pulseras", d:"Nudo bicolor, lisa."},
+        {id:"PU-34", n:"Pulsera Elástico Mármol B", p:2500, c:"Pulseras", d:"Nudo bicolor, bolas."},
+        {id:"PU-35", n:"Pulsera Eslabones Redondos", p:2500, c:"Pulseras", d:"Acero 304."},
+        {id:"PU-36", n:"Pulsera Dos Cadenas C", p:2500, c:"Pulseras", d:"Acero 304, dije corazón."},
+        {id:"PU-37", n:"Pulsera Elástica Acrílica R", p:2500, c:"Pulseras", d:"Roja, vintage."},
+        {id:"PU-38", n:"Pulsera Hebilla Dorada", p:3000, c:"Pulseras", d:"Acero 304, dije corazón."},
+        {id:"PU-39", n:"Pulsera Hebilla Plateada", p:3000, c:"Pulseras", d:"Acero 304, dije corazón."},
+        {id:"PU-40", n:"Pulsera Elástica Acrílica M", p:2500, c:"Pulseras", d:"Mármol, vintage."},
+        {id:"PU-41", n:"Pulsera Elástica Acrílica Am", p:2500, c:"Pulseras", d:"Ambar, vintage."},
+        {id:"PU-42", n:"Pulsera Elástica Acrílica C", p:2500, c:"Pulseras", d:"Café, vintage."},
+        {id:"PU-43", n:"Pulsera Elástica Acrílica B", p:2500, c:"Pulseras", d:"Blanca, vintage."},
+        {id:"PU-44", n:"Pulsera Dos Capas Corazones D", p:3000, c:"Pulseras", d:"Acero 316L, dorada."},
+        {id:"PU-45", n:"Pulsera Dos Capas Corazones P", p:2500, c:"Pulseras", d:"Acero 304, plateada."},
+        {id:"PU-46", n:"Pulsera Nylon Rosa", p:3000, c:"Pulseras", d:"Acero 304, dije corazón."},
+        {id:"PU-47", n:"Pulsera Nylon Blanca", p:3000, c:"Pulseras", d:"Acero 304, dije corazón."},
+        {id:"PU-48", n:"Pulsera con tela", p:3500, c:"Pulseras", d:"Patrón de leopardo en acero inoxidable 304."},
+        {id:"PU-49", n:"Pulsera cuentas", p:2500, c:"Pulseras", d:"Cuentas de colores, acero inoxidable 304 con chapado en oro 18k"},
+        {id:"PU-50", n:"Pulsera cuentas", p:2500, c:"Pulseras", d:"Cuentas de colores, acero inoxidable 304 con chapado en oro 18k"},
+        {id:"PU-51", n:"Pulsera de Tela Roja", p:3000, c:"Pulseras", d:"Con dijes."},
+        {id:"PU-52", n:"Pulsera de tela", p:2000, c:"Pulseras", d:"Tela y cuerda animal print"},
+        {id:"PU-53", n:"Pulsera de Tela Animal Flor", p:3000, c:"Pulseras", d:"Con dijes."},
+        {id:"PU-54", n:"Pulsera con perlas", p:2500, c:"Pulseras", d:"Acero Inoxidable 304 y chapada en oro."},
+        {id:"PU-55", n:"Pulsera Cuentas Ovaladas", p:2500, c:"Pulseras", d:"Acero 306L."},
+        {id:"PU-56", n:"Pulsera con perlas", p:2500, c:"Pulseras", d:"Acero Inoxidable 304 y chapada en oro."},
+        {id:"PU-57", n:"Pulsera cuentas", p:2500, c:"Pulseras", d:"Acero inoxidable 304 con chapado en oro 18k"},
+        {id:"PU-58", n:"Pulsera Corazones", p:3000, c:"Pulseras", d:"Acero 316L."},
+        {id:"PU-59", n:"Pulsera Doble Estrellas", p:2500, c:"Pulseras", d:"Acero 304."},
+        {id:"PU-60", n:"Pulsera cuentas", p:2500, c:"Pulseras", d:"Acero inoxidable 304 con chapado en oro 18k"},
+        {id:"PU-61", n:"Pulsera cuentas", p:2500, c:"Pulseras", d:"Acero inoxidable 304 con chapado en oro 18k"},
+        {id:"PU-62", n:"Pulsera cuentas", p:2500, c:"Pulseras", d:"Acero Inoxidable 304 con Chapado en Oro 18k"},
+        {id:"PU-65", n:"Pulsera Nylon", p:3000, c:"Pulseras", d:"Color negra"},
+        {id:"PU-66", n:"Pulsera Nylon", p:3000, c:"Pulseras", d:"Color roja"},
+        {id:"PU-67", n:"Pulsera piedra natural", p:3500, c:"Pulseras", d:"Acero inoxidable y piedra natural turquesa"},
+        {id:"PU-68", n:"Pulsera piedra natural", p:3500, c:"Pulseras", d:"Piedra natural azul"},
+        {id:"PU-69", n:"Pulsera piedra natural", p:3500, c:"Pulseras", d:"Piedra natural aqua"},
+        {id:"PU-70", n:"Pulsera piedra natural", p:3500, c:"Pulseras", d:"Piedra natural grises"},
+        {id:"PU-71", n:"Pulsera piedra natural", p:3500, c:"Pulseras", d:"Piedra natural lila"},
+        {id:"PU-72", n:"Pulsera piedra natural", p:3500, c:"Pulseras", d:"Piedra natural naranja"},
+
+        // TOBILLERAS (Categoría Pulseras)
+        {id:"TO-01", n:"Tobillera Triple Bolitas", p:2000, c:"Tobilleras", d:"Acero 304 PVD chapado oro 18k."},
+        {id:"TO-02", n:"Tobillera Monedas", p:2000, c:"Tobilleras", d:"Acero inoxidable."},
+        {id:"TO-03", n:"Tobillera Doble Gota-Cubo", p:2000, c:"Tobilleras", d:"Acero 304 PVD chapado oro 18k."},
+        {id:"TO-05", n:"Tobillera Doble Corazón", p:2000, c:"Tobilleras", d:"Acero 304 PVD chapado oro 18k."},
+        {id:"TO-06", n:"Tobillera Corazón Plateada", p:2200, c:"Tobilleras", d:"Tobillera doble con corazón."},
+
+        // SETS
+        {id:"ARJ-01", n:"Set 3 Pares Flores", p:3000, c:"Sets", d:"3 pares diseño flor, chapado oro 18k."},
+        {id:"ARJ-02", n:"Set 3 Pares Rectángulo", p:3000, c:"Sets", d:"Rectángulo, aro y bolita, oro 18k."},
+        {id:"CO-01", n:"Set Perla Gota", p:3500, c:"Sets", d:"3 piezas (aretes y cadena) dije perla."},
+        {id:"CO-02", n:"Set Rueda Coloreada", p:6000, c:"Sets", d:"3 piezas (aretes y cadena), acero 304, baño oro 18k."},
+        {id:"CO-03", n:"Set Resina Snake", p:4500, c:"Sets", d:"3 piezas, acero 304 IP resina oro 18k."},
+        {id:"CO-04", n:"Set collar y pulsera ovalada", p:6000, c:"Sets", d:"Resina y apliques de acero inoxidable estilo 304"},
+        {id:"CO-05", n:"Set Corazón Doble Dorado", p:4500, c:"Sets", d:"Collar y pulsera chapado oro 18k."},
+        {id:"CO-06", n:"Set collar y pulsera flores", p:4000, c:"Sets", d:"Cuentas coloridas y acero inoxidable"},
+        {id:"CO-07", n:"Set Flor Negra", p:2500, c:"Sets", d:"3 piezas flor negra gota de aceite."},
+        {id:"CO-08", n:"Set Cadena Serpiente C", p:4500, c:"Sets", d:"3 piezas, dije corazón perlado, acero 304."},
+        {id:"CO-09", n:"Set Cadena Serpiente A", p:4500, c:"Sets", d:"3 piezas, dije almendra perlado, acero 304."},
+        {id:"CO-10", n:"Set collar y pulsera ovalos", p:4000, c:"Sets", d:"Ovalos dorados."},
+        {id:"CO-11", n:"Set collar y pulsera ovalos", p:3500, c:"Sets", d:"Ovalos plateados."},
+        {id:"CO-12", n:"Set cadena y pulsera perlas", p:4000, c:"Sets", d:"Perlas de imitacion corazon, acero inoxidable 304"},
+        {id:"CO-13", n:"Set collar y pulsera flores", p:3000, c:"Sets", d:"Cuentas blancas y acero inoxidable"},
+        {id:"CO-14", n:"Set cadena, pulsera y argollas", p:5000, c:"Sets", d:"Dulce perla en acero inoxidable 304 chapado en oro 18K"},
+        {id:"CO-15", n:"Set collar y aretes", p:5000, c:"Sets", d:"Cuentas de vidrio forma corazón y acero inoxidable 304."},
+        {id:"CO-16", n:"Set perlas", p:6000, c:"Sets", d:"Acero inoxidable 304, perlas de imitacion con dije de corazon."},
+        {id:"CO-17", n:"Set collar y pulsera", p:5000, c:"Sets", d:"Perlas de imitacion, dije estrella de mar en acero inoxidable."},
+        {id:"CO-18", n:"Set collar y pulsera", p:4500, c:"Sets", d:"Acero Inoxidable 304 con chapado en oro, incrustación de circón rojo"},
+        {id:"CO-19", n:"Set collar y pulsera", p:6000, c:"Sets", d:"Acero inoxidable diseño francabulés, dije de corazón y perla incrustada."},
+        {id:"CO-20", n:"Set collar y pulsera", p:4000, c:"Sets", d:"Acero inoxidable, cuentas de semillas coloridas y colgante de flor"},
+        {id:"CO-21", n:"Set collar y pulsera", p:5500, c:"Sets", d:"Acero inoxidable 304 y vidrio con cuentas pulidas"},
+        {id:"CO-22", n:"Set collar y aretes", p:5000, c:"Sets", d:"Acero inoxidable, cuentas y perlas de imitacion"},
+        {id:"CO-23", n:"Set collar y pulsera", p:5500, c:"Sets", d:"Acero inoxidable 304 y vidrio con cuentas pulidas"},
+        {id:"CO-24", n:"Set collar y pulsera", p:4500, c:"Sets", d:"Acero inoxidable 316L, chapado en oro"},
+        {id:"CO-25", n:"Set collar y pulsera", p:4000, c:"Sets", d:"Acero inoxidable 316L, plateado"},
+        {id:"CO-26", n:"Set collar y pulsera", p:4500, c:"Sets", d:"Acero Inoxidable 304, chapado en oro, con incrustación de circón verde"},
+        {id:"CO-27", n:"Set collar y pulsera", p:3000, c:"Sets", d:"Bolitas aqua"},
+    ];
+
+    let cart = [];
+
+    // Cargar productos
+    function loadProducts(category = 'all') {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        
+        const filtered = category === 'all' 
+            ? products 
+            : products.filter(p => p.c === category);
+
+        filtered.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            // Lógica de Imagen: Intenta cargar img/ID.jpg, si falla muestra placeholder
+            const imgPath = `img/${p.id}.jpg`;
+            
+            card.innerHTML = `
+                <div class="card-img-wrapper">
+                    <img src="${imgPath}" class="card-img" alt="${p.n}" 
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                    <div class="no-img-placeholder" style="display:none">
+                        <span style="font-size:2rem; margin-bottom:10px">💎</span>
+                        <span>${p.id}</span>
+                        <small style="margin-top:5px; font-size:0.7rem">Sin foto</small>
+                    </div>
+                </div>
+                <div class="card-info">
+                    <span class="card-code">${p.id}</span>
+                    <h3 class="card-title">${p.n}</h3>
+                    <p class="card-desc">${p.d}</p>
+                    <div class="card-footer">
+                        <span class="price">₡${p.p.toLocaleString()}</span>
+                        <button class="add-btn" onclick="addToCart('${p.id}')">+</button>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+        
+        // Manejar estado activo de botones
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        if(event) event.target.classList.add('active');
+        else document.querySelector('.cat-btn').classList.add('active');
+    }
+
+    function filterProducts(cat) { loadProducts(cat); }
+
+    function addToCart(id) {
+        const product = products.find(p => p.id === id);
+        cart.push(product);
+        updateCartDisplay();
+        
+        // Efecto visual en botón flotante
+        const fab = document.querySelector('.fab-cart');
+        fab.style.transform = "scale(1.2)";
+        setTimeout(() => fab.style.transform = "scale(1)", 200);
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        updateCartDisplay();
+    }
+
+    function updateCartDisplay() {
+        // Actualizar contador
+        document.getElementById('cart-total-badge').innerText = cart.length;
+        
+        // Calcular total
+        const total = cart.reduce((sum, item) => sum + item.p, 0);
+        document.getElementById('cart-final-total').innerText = total.toLocaleString();
+        
+        // Renderizar lista
+        const list = document.getElementById('cart-list');
+        if(cart.length === 0) {
+            list.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">El carrito está vacío.</p>';
+        } else {
+            list.innerHTML = cart.map((item, index) => `
+                <div class="cart-item">
+                    <div class="cart-item-info">
+                        <strong>${item.n}</strong>
+                        <small>${item.id}</small>
+                    </div>
+                    <div style="text-align:right">
+                        <div>₡${item.p.toLocaleString()}</div>
+                        <span class="remove-link" onclick="removeFromCart(${index})">Eliminar</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    function toggleCart() {
+        const modal = document.getElementById('cart-modal');
+        modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    function checkout(method) {
+        if(cart.length === 0) return alert("Tu carrito está vacío.");
+        
+        const name = document.getElementById('client-name').value;
+        const phone = document.getElementById('client-phone').value;
+        const address = document.getElementById('client-address').value;
+
+        if(!name) return alert("Por favor ingresa tu nombre.");
+
+        let msg = `Hola KAFLOCA STORE, soy ${name}. Deseo ordenar lo siguiente:\n\n`;
+        let total = 0;
+        
+        cart.forEach(item => {
+            msg += `▪ ${item.n} (${item.id}): ₡${item.p.toLocaleString()}\n`;
+            total += item.p;
+        });
+        
+        msg += `\n*TOTAL: ₡${total.toLocaleString()}*`;
+        if(phone) msg += `\nTeléfono: ${phone}`;
+        if(address) msg += `\nNotas adicionales: ${address}`;
+
+        if(method === 'whatsapp') {
+            window.open(`https://wa.me/${STORE_WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
+        } else {
+            window.location.href = `mailto:${STORE_EMAIL}?subject=Nuevo Pedido de ${name}&body=${encodeURIComponent(msg)}`;
+        }
+    }
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProducts();
+        updateCartDisplay();
+    });
+</script>
+
+</body>
+</html>
