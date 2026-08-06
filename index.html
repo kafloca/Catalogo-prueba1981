@@ -687,7 +687,7 @@
         {id:"CO-24", n:"Set collar y pulsera", p:4500, c:"Sets", d:"Acero inoxidable 316L, chapado en oro", stock:1},
         {id:"CO-25", n:"Set collar y pulsera", p:4000, c:"Sets", d:"Acero inoxidable 316L, plateado", stock:1},
         {id:"CO-26", n:"Set collar y pulsera", p:4500, c:"Sets", d:"Acero Inoxidable 304, chapado en oro, con incrustación de circón verde", stock:1},
-        {id:"CO-27", n:"Set collar y pulsera", p:3000, c:"Sets", d:"Bolitas aqua", stock:1},
+        {id:"CO-27", n:"Set collar y pulsera", p:3000, c:"Sets", d:"Bolitas aqua", stock:1}
     ];
 
     let cart = [];
@@ -783,18 +783,20 @@ function openAdminPanel(){
         return;
 
     }
+
+    document.getElementById(
+        "adminModal"
+    ).style.display = "block";
+
+    renderInventoryPanel();
+}
+
 function closeAdminPanel(){
 
     document.getElementById(
         "adminModal"
     ).style.display = "none";
 
-}
-    document.getElementById(
-        "adminModal"
-    ).style.display = "block";
-
-    renderInventoryPanel();
 }
     function addToCart(id) {
         const product = products.find(p => p.id === id);
