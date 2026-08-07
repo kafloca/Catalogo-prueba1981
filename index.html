@@ -171,13 +171,65 @@
         <button class="btn-block btn-whatsapp" onclick="checkout('whatsapp')">Enviar Pedido por WhatsApp</button>
     </div>
 </div>
+<script type="module">
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  onSnapshot
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 <script>
     /* =====================================================
        CONFIGURACIÓN DE LA TIENDA
        ===================================================== */
     const STORE_WHATSAPP = "50684107482"; // Número sin símbolos
     const STORE_EMAIL = "floryta_81@hotmail.com"; // Tu correo real
+    const firebaseConfig = {
+
+  apiKey: "SU_APIKEY",
+
+  authDomain: "SU_DOMINIO",
+
+  projectId: "SU_PROJECT_ID",
+
+  storageBucket: "SU_BUCKET",
+
+  messagingSenderId: "SU_ID",
+
+  appId: "SU_APP"
+
+};
+
+const app = initializeApp(firebaseConfig);
+
+const db = getFirestore(app);
+    onSnapshot(
+
+    doc(
+        db,
+        "store",
+        "inventory"
+    ),
+
+    (snapshot)=>{
+
+        if(!snapshot.exists()) return;
+
+        inventory =
+            snapshot.data();
+
+        loadProducts();
+
+        renderInventoryPanel();
+
+    }
+
+);
     
     // BASE DE DATOS COMPLETA DE PRODUCTOS
     // Nota: Se han corregido precios erróneos (ej: 43500 -> 3500)
@@ -693,12 +745,44 @@
     let cart = [];
 const ADMIN_PASSWORD = "dollie2026";
 
-let inventory =
-    JSON.parse(localStorage.getItem("inventory")) || {};
+let inventory = {};
 
 let totalSales =
     Number(localStorage.getItem("totalSales")) || 0;
 
+async function loadInventory(){
+
+    const docRef =
+        doc(
+            db,
+            "store",
+            "inventory"
+        );
+
+    const snapshot =
+        await getDoc(docRef);
+
+    if(snapshot.exists()){
+
+        inventory =
+            snapshot.data();
+
+    }
+async function saveInventory(){
+
+    await setDoc(
+
+        doc(
+            db,
+            "store",
+            "inventory"
+        ),
+
+        inventory
+
+    );
+
+}   
 function initializeInventory(){
 
     products.forEach(product => {
@@ -904,7 +988,7 @@ function renderInventoryPanel(){
         "inventoryTable"
     ).innerHTML = html;
 }
-    function adjustInventory(id, qty){
+async function adjustInventory(id, qty){
 
     inventory[id] =
         (inventory[id] || 0) + qty;
@@ -915,16 +999,14 @@ function renderInventoryPanel(){
 
     }
 
-    localStorage.setItem(
-        "inventory",
-        JSON.stringify(inventory)
-    );
+    await saveInventory();
 
     renderInventoryPanel();
 
     loadProducts();
+
 }
-function registerSale(id){
+async function registerSale(id){
 
     const product =
         products.find(
@@ -933,28 +1015,24 @@ function registerSale(id){
 
     if(!product) return;
 
-    const stockActual =
+    const stock =
         inventory[id] || 0;
 
-    if(stockActual <= 0){
+    if(stock <= 0){
 
         alert(
-            "No hay existencias disponibles para este producto."
+            "No hay existencias disponibles."
         );
 
         return;
 
     }
 
-    inventory[id] =
-        stockActual - 1;
+    inventory[id]--;
 
     totalSales += product.p;
 
-    localStorage.setItem(
-        "inventory",
-        JSON.stringify(inventory)
-    );
+    await saveInventory();
 
     localStorage.setItem(
         "totalSales",
@@ -1045,7 +1123,11 @@ function initializeAdminAccess(){
     );
 
 }
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener(
+'DOMContentLoaded',
+async () => {
+
+    await loadInventory();
 
     initializeInventory();
 
