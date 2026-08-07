@@ -879,9 +879,12 @@ function renderInventoryPanel(){
                -
             </button>
 
-            <button onclick="registerSale('${product.id}')">
-               Venta
-            </button>
+<button
+    onclick="registerSale('${product.id}')"
+    ${inventory[product.id] <= 0 ? "disabled" : ""}
+>
+    Venta
+</button>
 
           </td>
 
@@ -921,23 +924,47 @@ function renderInventoryPanel(){
 
     loadProducts();
 }
-    function registerSale(id){
+function registerSale(id){
 
     const product =
-       products.find(
-       p => p.id === id
-    );
+        products.find(
+            p => p.id === id
+        );
 
     if(!product) return;
+
+    const stockActual =
+        inventory[id] || 0;
+
+    if(stockActual <= 0){
+
+        alert(
+            "No hay existencias disponibles para este producto."
+        );
+
+        return;
+
+    }
+
+    inventory[id] =
+        stockActual - 1;
 
     totalSales += product.p;
 
     localStorage.setItem(
-      "totalSales",
-      totalSales
+        "inventory",
+        JSON.stringify(inventory)
+    );
+
+    localStorage.setItem(
+        "totalSales",
+        totalSales
     );
 
     renderInventoryPanel();
+
+    loadProducts();
+
 }
     function toggleCart() {
         const modal = document.getElementById('cart-modal');
